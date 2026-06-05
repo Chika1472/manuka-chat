@@ -1,0 +1,50 @@
+{
+  "vocab_size": 16000,
+  "d_model": 512,
+  "n_layers": 10,
+  "n_heads": 8,
+  "n_kv_heads": 8,
+  "max_len": 512,
+  "dropout": 0.08,
+  "qk_norm": true,
+  "residual_scale": 1.0,
+  "rope_theta": 1000000.0,
+  "rope_scale": 1.0,
+  "rope_scaling_type": "linear",
+  "gradient_checkpointing": false,
+  "special_tokens": {
+    "PAD": 0,
+    "BOS": 1,
+    "SEP": 2,
+    "EOS": 3,
+    "UNK": 4
+  },
+  "tokenizer_model": "spm16k.model",
+  "generation": {
+    "max_new_tokens": 96,
+    "temperature": 0.72,
+    "top_p": 0.88,
+    "top_k": 60,
+    "repetition_penalty": 1.12,
+    "no_repeat_ngram_size": 4
+  },
+  "optimizer": {
+    "base_lr": 0.0003,
+    "min_lr": 3e-05,
+    "weight_decay": 0.1,
+    "label_smoothing": 0.02
+  },
+  "training": {
+    "epochs": 10,
+    "batch_size": 768,
+    "accum": 4,
+    "warmup_steps": 1780,
+    "val_fraction": 0.02,
+    "best_val_loss": 4.28019941680137
+  },
+  "paths": {
+    "data_root": "/content/drive/MyDrive/text_dataset/manuka/manuka-0527",
+    "prepared_dir": "/content/drive/MyDrive/text_dataset/manuka/manuka-0527/prepared",
+    "model_dir": "/content/drive/MyDrive/text_dataset/manuka/manuka-0527/manuka-model"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "data_root": "/content/drive/MyDrive/text_dataset/manuka/manuka-0527",
+  "zip_path": "/content/drive/MyDrive/text_dataset/dataset/일상대화_데이터.zip",
+  "prepared_dir": "/content/drive/MyDrive/text_dataset/manuka/manuka-0527/prepared",
+  "model_dir": "/content/drive/MyDrive/text_dataset/manuka/manuka-0527/manuka-model",
+  "json_files": 14229,
+  "documents": 14229,
+  "utterances_seen": 4570823,
+  "usable_units": 4670775,
+  "training_examples": 9298863,
+  "tokenized_examples": 9298863,
+  "example_mix": {
+    "next_1": 4656546,
+    "next_2": 4642317
+  },
+  "tokens_per_epoch_before_padding": 149944111,
+  "context_length": 512,
+  "format": "BOS + prompt + SEP + response + EOS",
+  "special_tokens": {
+    "PAD": 0,
+    "BOS": 1,
+    "SEP": 2,
+    "EOS": 3,
+    "UNK": 4
+  },
+  "tokenizer_model": "spm16k.model",
+  "tokenized_file": "tokenized_examples.jsonl.gz",
+  "pairs_file": "pairs.jsonl.gz"
+}
