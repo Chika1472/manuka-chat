@@ -27,7 +27,7 @@
 <br>
 
 > [!NOTE]
-> **지금 상태** — 데모 기본 모델은 `manuka-model-0611`(81.4M)이다. 뉴스·일상대화 텍스트로 사전학습한 뒤 일상대화 30만 쌍으로 SFT했다. **직전 발화 하나를 보고 다음 발화 하나를 만드는 단일 턴 모델**이라 앞선 대화를 기억하지 않는다. 구어체 문장은 만들어 내지만, 답이 질문의 맥락에서 금방 벗어나는 경우가 많다. 자세한 내용은 [학습 결과](#학습-결과)와 [한계와 알려진 문제](#한계와-알려진-문제)에 있다.
+> **지금 상태** — 데모 기본 모델은 `manuka-model-0611`(81.4M)이다. 뉴스·일상대화 텍스트로 사전학습한 뒤 일상대화 30만 쌍으로 SFT했다. **직전 발화 하나를 보고 다음 발화 하나를 만드는 단일 턴 모델**이라 앞선 대화를 기억하지 않는다. 구어체 문장은 만들어 내지만, 답이 질문의 맥락에서 금방 벗어나는 경우가 많다. 자세한 내용은 [학습 결과](#학습-결과)에 있다.
 
 <details>
 <summary><b>목차</b></summary>
@@ -40,10 +40,7 @@
 6. [채팅 데모](#채팅-데모)
 7. [저장소 구성](#저장소-구성)
 8. [시작하기](#시작하기)
-9. [구현 원칙](#구현-원칙)
-10. [한계와 알려진 문제](#한계와-알려진-문제)
-11. [진행 기록](#진행-기록)
-12. [참고자료](#참고자료)
+9. [참고자료](#참고자료)
 
 </details>
 
@@ -488,7 +485,7 @@ streamlit run streamlit-dashboard/streamlit_messenger_app.py
 | 0527 모델과 대화 | Settings → Model directory에 `model/manuka-model-0527`을 입력한다 (저장소 루트에서 실행한 경우) |
 | 같은 입력에 같은 답 받기 | Settings → Use seed를 켠다 |
 | 파이썬 코드에서 쓰기 | [`ManukaGenerator`](#코드에서-바로-쓰기)를 쓴다 |
-| GitHub Codespaces | 저장소를 Codespaces로 열면 의존성이 설치되고 8501 포트가 포워딩된다. 자동 실행 명령은 [지금 동작하지 않으므로](#알려진-문제) 위 명령을 직접 실행한다 |
+| GitHub Codespaces | 저장소를 Codespaces로 열면 의존성이 설치되고 8501 포트가 포워딩된다. 자동 실행 명령은 삭제된 이전 앱 파일(`streamlit_inference_app.py`)을 가리키므로 위 명령을 직접 실행한다 |
 
 > [!NOTE]
 > Python 3.13 · PyTorch 2.14.1(CPU) · Streamlit 1.65.0 · SentencePiece 0.2.2 환경에서 두 체크포인트 로드, 앱 실행, 메시지 송수신, 0527 · 0611 전환을 확인했다.
@@ -509,63 +506,6 @@ streamlit run streamlit-dashboard/streamlit_messenger_app.py
 
 > [!WARNING]
 > 노트북은 같은 Drive 폴더의 결과(`model.pt`, `config.json`, zip)를 덮어쓴다. 이전 결과를 남기려면 노트북 위쪽의 `DATA_ROOT`를 바꾼다. 0611 `pretrain`은 `training_checkpoint_latest.pt`가 있으면 자동으로 이어서 학습하고, `sft`는 `prepared/`에 만들어 둔 30만 쌍 파일이 있으면 다시 만들지 않는다(`FORCE_REBUILD_SFT_DATA = True`로 강제).
-
-<p align="right"><a href="#readme-top">맨 위로 ↑</a></p>
-
----
-
-## 구현 원칙
-
-코드와 노트북 주석에서 드러나는 원칙을 추리면 다음과 같다.
-
-- **외부 모델 라이브러리 없이** — Transformer 블록, RoPE, KV 캐시, 샘플링을 PyTorch 기본 연산으로 직접 구현했다. 의존성은 `torch`, `sentencepiece`, `streamlit` 셋뿐이다.
-- **학습과 추론의 형식을 맞추기** — SFT에서 쓴 `[BOS] 프롬프트 [SEP] 응답` 형식을 추론에서도 그대로 쓴다. 가중치는 `strict=True`로 불러오고 토크나이저 어휘 크기와 `<sep>` 토큰을 확인해, 구조나 토크나이저가 어긋나면 바로 실패하게 했다.
-- **응답에만 손실 걸기** — 프롬프트 위치의 라벨은 −100으로 가려, 모델이 답을 만드는 법만 배우게 한다.
-- **대화끼리 섞지 않기** — 예시들을 긴 스트림 하나로 이어 붙이지 않고 배치마다 패딩한다. 서로 상관없는 대화가 어텐션으로 섞이지 않게 하려는 것이다.
-- **설정과 통계를 체크포인트와 함께** — `config.json`에 구조·생성 기본값·하이퍼파라미터·최적 검증 손실을, `data_manifest.json` · `sft_data_manifest.json`에 데이터 통계와 필터 기준을 남긴다.
-- **검증 손실로 고르기** — 검증 손실이 좋아질 때만 `model.pt`를 덮어쓰고, 개선이 멈추면 조기 종료한다(0527은 5 epoch, 0611은 2 epoch 기다림).
-- **Colab 세션에 대비하기** — Drive의 전처리 결과를 Colab 로컬 디스크로 복사한 뒤 읽고, 0611 사전학습은 epoch마다 이어 하기용 체크포인트를 저장한다.
-- **고정 시드** — 데이터 섞기, 검증 분할, 초기화에 시드 42를 쓴다.
-
-<p align="right"><a href="#readme-top">맨 위로 ↑</a></p>
-
----
-
-## 한계와 알려진 문제
-
-### 한계
-
-| 영역 | 한계 |
-|---|---|
-| 대화 구조 | 단일 턴이다. 직전 발화 하나만 보고 답하며, 앱이 화면에 쌓는 대화 기록도 모델 입력에는 들어가지 않는다 |
-| 응답 품질 | 소형 모델이라 답이 맥락에서 벗어나거나 어색하게 끝나기 쉽고, 내용의 사실 여부를 보장하지 않는다 |
-| 평가 | 검증 손실 외의 정량 평가(사람 평가, 벤치마크)가 없다. 0611 사전학습 손실은 기록되지 않았다 |
-| 데이터 | 원자료가 저장소에 없어 다시 학습하려면 같은 자료를 따로 구해야 한다. 일상대화 자료에는 방송·독백형 발화도 섞여 있어 0611 SFT에서 규칙 기반 필터로만 걸렀다 |
-| 재현성 | 노트북이 Colab과 Drive 절대 경로(`/content/drive/MyDrive/text_dataset/…`)를 전제로 한다. `config.json`의 `paths`도 학습 당시 Drive 경로다 |
-
-### 알려진 문제
-
-| 문제 | 영향 | 해결 방법 |
-|---|---|---|
-| [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json)이 지금은 없는 `streamlit-dashboard/streamlit_inference_app.py`를 열고 실행하도록 되어 있다 | Codespaces · Dev Container에서 앱 자동 실행이 실패한다 | `streamlit run streamlit-dashboard/streamlit_messenger_app.py`를 직접 실행한다 |
-| `requirements.txt`는 `streamlit>=1.35`지만 앱이 `st.container(key=…)`(1.39부터)와 `st.columns(vertical_alignment=…)`(1.36부터)를 쓴다 | Streamlit 1.35–1.38이 이미 설치된 환경에서는 앱이 `TypeError`로 멈춘다 | `pip install -U "streamlit>=1.39"` |
-| 앱의 LFS 자동 복구는 `model.pt`만 받는데, 0611 폴더는 `config.json`과 토크나이저도 LFS 파일이다 | LFS 없이 받은 체크아웃에서는 "Could not read config.json" 오류가 난다 | `git lfs pull`로 체크포인트 전체를 받는다 |
-| Streamlit 1.65.0에서는 첫 화면의 상단 바가 위로 밀려 안 보일 수 있고, 맨 위로 올려도 Streamlit 고정 헤더가 Settings 버튼 윗부분을 덮는다 | 버튼 가운데를 눌러도 Settings가 열리지 않는다 | 페이지를 맨 위로 올린 뒤 버튼의 아래쪽 가장자리를 누른다 |
-| [`pretrain-infernace.ipynb`](notebook/0611/pretrain-infernace.ipynb)의 한국어 예시 문자열이 `??`로 저장돼 있다 | 예시 프롬프트와 안내 문구가 깨져 보인다 | 프롬프트를 직접 입력한다 |
-| `notebook/0611/sft.ipynb`와 `sft-online.ipynb`는 내용이 같다 | — | 둘 중 하나만 쓰면 된다 |
-
-<p align="right"><a href="#readme-top">맨 위로 ↑</a></p>
-
----
-
-## 진행 기록
-
-| 날짜 | 내용 |
-|---|---|
-| 2026-06-05 | 저장소 생성. 0527 체크포인트와 노트북 3개, Streamlit 추론 앱(`streamlit_inference_app.py`)과 추론 모듈, `example.json`, Dev Container 추가. Streamlit 배포용 `packages.txt`와 `.gitattributes`(Git LFS) 추가 |
-| 2026-06-08 | Streamlit 추론 앱 수정 |
-| 2026-06-11 | 0611 노트북과 0611 체크포인트([PR #1](https://github.com/Chika1472/manuka-chat/pull/1)) 추가. 앱을 메신저형 UI(`streamlit_messenger_app.py`)로 바꾸고 이전 앱은 삭제 |
-| 2026-06-27 | 노트북을 실험 날짜별 폴더(`notebook/0527/`, `notebook/0611/`)로 정리하고 이름 변경 |
 
 <p align="right"><a href="#readme-top">맨 위로 ↑</a></p>
 
